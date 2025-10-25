@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrankChat - Connect with Classmates</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    
+    <!-- ========== LANDING PAGE ========== -->
+    <div id="landingPage" class="landing-page">
+        <nav class="landing-nav">
+            <div class="nav-content">
+                <div class="logo">
+                    <i class="fas fa-comments"></i>
+                    <span>FrankChat</span>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn-secondary" onclick="showAuthModal('login')">Login</button>
+                    <button class="btn-primary" onclick="showAuthModal('signup')">Sign Up</button>
+                </div>
+            </div>
+        </nav>
+
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Connect with Your Classmates</h1>
+                <p>Real-time messaging platform designed for seamless communication and collaboration</p>
+                <div class="hero-buttons">
+                    <button class="btn-primary btn-large" onclick="showAuthModal('signup')">
+                        <i class="fas fa-rocket"></i> Get Started
+                    </button>
+                    <button class="btn-secondary btn-large" onclick="showAuthModal('login')">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="chat-preview">
+                    <div class="preview-card">
+                        <i class="fas fa-user-friends"></i>
+                        <h3>Private Chats</h3>
+                        <p>One-on-one conversations</p>
+                    </div>
+                    <div class="preview-card">
+                        <i class="fas fa-users"></i>
+                        <h3>Group Chats</h3>
+                        <p>Collaborate with teams</p>
+                    </div>
+                    <div class="preview-card">
+                        <i class="fas fa-bolt"></i>
+                        <h3>Real-time</h3>
+                        <p>Instant message delivery</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features">
+            <h2>Why Choose FrankChat?</h2>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <i class="fas fa-lock"></i>
+                    <h3>Secure & Private</h3>
+                    <p>Your conversations are protected with industry-standard encryption</p>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <h3>Lightning Fast</h3>
+                    <p>Messages delivered instantly with our optimized infrastructure</p>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-mobile-alt"></i>
+                    <h3>Fully Responsive</h3>
+                    <p>Perfect experience on desktop, tablet, and mobile devices</p>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-bell"></i>
+                    <h3>Smart Notifications</h3>
+                    <p>Never miss important messages with real-time alerts</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ========== AUTH MODAL ========== -->
+    <div id="authModal" class="modal">
+        <div class="modal-content auth-modal">
+            <button class="modal-close" onclick="closeAuthModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <div class="auth-container">
+                <div class="auth-tabs">
+                    <button id="loginTab" class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                    <button id="signupTab" class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form">
+                    <h2>Welcome Back</h2>
+                    <p class="auth-subtitle">Sign in to continue your conversations</p>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Username</label>
+                        <input type="text" id="loginUsername" placeholder="Enter your username" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                    </div>
+                    
+                    <div id="loginError" class="error-message"></div>
+                    
+                    <button type="submit" class="btn-primary btn-full">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                </form>
+
+                <!-- Signup Form -->
+                <form id="signupForm" class="auth-form" style="display: none;">
+                    <h2>Create Account</h2>
+                    <p class="auth-subtitle">Join FrankChat and start connecting</p>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Username</label>
+                        <input type="text" id="signupUsername" placeholder="Choose a username" required minlength="3">
+                        <small>At least 3 characters</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="signupPassword" placeholder="Create a password" required minlength="6">
+                        <small>At least 6 characters</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Confirm Password</label>
+                        <input type="password" id="signupPasswordConfirm" placeholder="Confirm your password" required>
+                    </div>
+                    
+                    <div id="signupError" class="error-message"></div>
+                    
+                    <button type="submit" class="btn-primary btn-full">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== CHAT APPLICATION ========== -->
+    <div id="chatApp" class="chat-app" style="display: none;">
+        
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-profile">
+                    <div class="avatar" id="sidebarAvatar">FC</div>
+                    <div class="user-info">
+                        <h3 id="sidebarUsername">User</h3>
+                        <span class="status-indicator online">Online</span>
+                    </div>
+                </div>
+                <button class="icon-btn" onclick="toggleSettingsModal()">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchConversations" placeholder="Search conversations...">
+            </div>
+
+            <button class="new-chat-btn" onclick="showNewChatModal()">
+                <i class="fas fa-plus"></i> New Chat
+            </button>
+
+            <div class="conversations-list" id="conversationsList">
+                <!-- Conversations will be loaded here -->
+            </div>
+        </aside>
+
+        <!-- Chat Area -->
+        <main class="chat-main">
+            <div class="chat-placeholder">
+                <i class="fas fa-comments"></i>
+                <h2>Welcome to FrankChat</h2>
+                <p>Select a conversation or start a new chat to begin messaging</p>
+            </div>
+
+            <div class="chat-container" id="chatContainer" style="display: none;">
+                <div class="chat-header">
+                    <div class="chat-header-info">
+                        <div class="avatar" id="chatAvatar">U</div>
+                        <div>
+                            <h3 id="chatName">Chat Name</h3>
+                            <span id="chatStatus" class="chat-status">Online</span>
+                        </div>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="icon-btn" onclick="toggleChatInfo()">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="messages-container" id="messagesContainer">
+                    <!-- Messages will appear here -->
+                </div>
+
+                <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <span id="typingUsername">Someone</span> is typing...
+                </div>
+
+                <form class="message-input-form" id="messageForm">
+                    <button type="button" class="icon-btn">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </main>
+
+        <!-- Chat Info Panel -->
+        <aside class="chat-info" id="chatInfo" style="display: none;">
+            <div class="chat-info-header">
+                <h3>Chat Details</h3>
+                <button class="icon-btn" onclick="toggleChatInfo()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="chat-info-content">
+                <div class="chat-info-section">
+                    <div class="avatar-large" id="infoAvatar">U</div>
+                    <h3 id="infoName">Chat Name</h3>
+                    <p id="infoStatus">Online</p>
+                </div>
+                <div class="chat-info-section">
+                    <h4><i class="fas fa-users"></i> Participants</h4>
+                    <div id="participantsList">
+                        <!-- Participants will appear here -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ========== NEW CHAT MODAL ========== -->
+    <div id="newChatModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>New Chat</h2>
+                <button class="modal-close" onclick="closeNewChatModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-tabs">
+                <button class="modal-tab active" onclick="switchNewChatTab('private')" id="privateTab">
+                    <i class="fas fa-user"></i> Private Chat
+                </button>
+                <button class="modal-tab" onclick="switchNewChatTab('group')" id="groupTab">
+                    <i class="fas fa-users"></i> Group Chat
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div id="privateChatSection">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchUsers" placeholder="Search users...">
+                    </div>
+                    <div class="users-list" id="usersList">
+                        <!-- Users will be loaded here -->
+                    </div>
+                </div>
+
+                <div id="groupChatSection" style="display: none;">
+                    <div class="form-group">
+                        <label>Group Name</label>
+                        <input type="text" id="groupName" placeholder="Enter group name">
+                    </div>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchGroupUsers" placeholder="Search users...">
+                    </div>
+                    <div class="users-list" id="groupUsersList">
+                        <!-- Users for group will be loaded here -->
+                    </div>
+                    <button class="btn-primary btn-full" onclick="createGroupChat()">
+                        <i class="fas fa-users"></i> Create Group
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== SETTINGS MODAL ========== -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="modal-close" onclick="toggleSettingsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3><i class="fas fa-user"></i> Profile</h3>
+                    <div class="profile-info">
+                        <div class="avatar-large" id="settingsAvatar">FC</div>
+                        <h3 id="settingsUsername">Username</h3>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-palette"></i> Appearance</h3>
+                    <div class="setting-item">
+                        <label>Theme</label>
+                        <select id="themeSelect" onchange="changeTheme()">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-bell"></i> Notifications</h3>
+                    <div class="setting-item">
+                        <label>Enable Notifications</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="notificationsToggle" onchange="toggleNotifications()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <button class="btn-danger btn-full" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
