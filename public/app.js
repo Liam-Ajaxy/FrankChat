@@ -16,7 +16,7 @@ const isDev = window.location.hostname === 'localhost' || window.location.hostna
 // Backend base URL (Render, Railway, etc. for production)
 const API_URL = isDev
   ? 'http://localhost:3000/api'
-  : 'https://frankchat-pi4x.onrender.com//api';
+  : 'https://frankchat-pi4x.onrender.com/api';
 
 
 // ========== INITIALIZE ==========
@@ -168,7 +168,7 @@ async function initializeChat() {
 function initializeSocket() {
   const socketURL = isDev
     ? 'http://localhost:3000'
-    : 'https://frankchat-pi4x.onrender.com/';
+    : 'https://frankchat-pi4x.onrender.com';
 
   state.socket = io(socketURL, {
     auth: { token: state.token }
