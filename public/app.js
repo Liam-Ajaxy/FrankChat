@@ -10,7 +10,14 @@ const state = {
   typingTimeouts: {}
 };
 
-const API_URL = 'http://localhost:3000/api';
+// Detect environment
+const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+// Backend base URL (Render, Railway, etc. for production)
+const API_URL = isDev
+  ? 'http://localhost:3000/api'
+  : 'https://frankchat-pi4x.onrender.com//api';
+
 
 // ========== INITIALIZE ==========
 document.addEventListener('DOMContentLoaded', () => {
@@ -159,7 +166,11 @@ async function initializeChat() {
 
 // ========== SOCKET.IO ==========
 function initializeSocket() {
-  state.socket = io('http://localhost:3000', {
+  const socketURL = isDev
+    ? 'http://localhost:3000'
+    : 'https://frankchat-pi4x.onrender.com/';
+
+  state.socket = io(socketURL, {
     auth: { token: state.token }
   });
   

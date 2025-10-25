@@ -13,13 +13,23 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: [
+      'http://localhost:5500',
+      'https://vibeclass.vercel.app'
+    ],
+    methods: ['GET', 'POST']
   }
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5500',       // Local testing
+    'https://vibeclass.vercel.app' // Frontend on Vercel
+  ],
+  methods: ['GET', 'POST'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
