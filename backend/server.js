@@ -15,19 +15,28 @@ const io = new Server(server, {
   cors: {
     origin: [
       'http://localhost:5500',
+      'http://localhost:5501',
+      'http://localhost:3000',
+      'http://127.0.0.1:5500',
+      'http://127.0.0.1:5501',
       'https://vibeclass.vercel.app'
     ],
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
 // Middleware
 app.use(cors({
   origin: [
-    'http://localhost:5500',       // Local testing
-    'https://vibeclass.vercel.app' // Frontend on Vercel
+    'http://localhost:5500',
+    'http://localhost:5501',
+    'http://localhost:3000',
+    'http://127.0.0.1:5500',
+    'http://127.0.0.1:5501',
+    'https://vibeclass.vercel.app'
   ],
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   credentials: true
 }));
 app.use(express.json());
@@ -149,7 +158,9 @@ app.post('/api/auth/signup', async (req, res) => {
     const user = new User({
       username,
       password: hashedPassword,
-      avatar: username.substring(0, 2).toUpperCase()
+      avatar: username.substring(0, 2).toUpperCase(),
+      status: 'offline',
+      lastSeen: new Date()
     });
 
     await user.save();
@@ -166,10 +177,13 @@ app.post('/api/auth/signup', async (req, res) => {
         id: user._id,
         username: user.username,
         avatar: user.avatar,
+        status: user.status,
+        lastSeen: user.lastSeen,
         settings: user.settings
       }
     });
   } catch (error) {
+    console.error('Signup error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -199,7 +213,9 @@ app.post('/api/auth/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Update user status to online
     user.status = 'online';
+    user.lastSeen = new Date();
     await user.save();
 
     res.json({
@@ -208,10 +224,13 @@ app.post('/api/auth/login', async (req, res) => {
         id: user._id,
         username: user.username,
         avatar: user.avatar,
+        status: user.status,
+        lastSeen: user.lastSeen,
         settings: user.settings
       }
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -225,6 +244,7 @@ app.get('/api/users', authenticateToken, async (req, res) => {
       .select('username avatar status lastSeen');
     res.json(users);
   } catch (error) {
+    console.error('Get users error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -235,12 +255,17 @@ app.patch('/api/users/settings', authenticateToken, async (req, res) => {
     const { theme, notifications } = req.body;
     const user = await User.findById(req.user.id);
 
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     if (theme) user.settings.theme = theme;
     if (notifications !== undefined) user.settings.notifications = notifications;
 
     await user.save();
     res.json({ settings: user.settings });
   } catch (error) {
+    console.error('Update settings error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -253,12 +278,13 @@ app.get('/api/conversations', authenticateToken, async (req, res) => {
     const conversations = await Conversation.find({
       participants: req.user.id
     })
-      .populate('participants', 'username avatar status')
+      .populate('participants', 'username avatar status lastSeen')
       .populate('lastMessage.sender', 'username')
       .sort({ 'lastMessage.time': -1 });
 
     res.json(conversations);
   } catch (error) {
+    console.error('Get conversations error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -280,7 +306,7 @@ app.post('/api/conversations', authenticateToken, async (req, res) => {
       const existingConv = await Conversation.findOne({
         type: 'private',
         participants: { $all: allParticipants, $size: 2 }
-      }).populate('participants', 'username avatar status');
+      }).populate('participants', 'username avatar status lastSeen');
 
       if (existingConv) {
         return res.json(existingConv);
@@ -294,7 +320,7 @@ app.post('/api/conversations', authenticateToken, async (req, res) => {
     });
 
     await conversation.save();
-    await conversation.populate('participants', 'username avatar status');
+    await conversation.populate('participants', 'username avatar status lastSeen');
 
     // Emit to all participants
     allParticipants.forEach(participantId => {
@@ -303,6 +329,7 @@ app.post('/api/conversations', authenticateToken, async (req, res) => {
 
     res.json(conversation);
   } catch (error) {
+    console.error('Create conversation error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -316,6 +343,16 @@ app.get('/api/messages/:conversationId', authenticateToken, async (req, res) => 
     const limit = parseInt(req.query.limit) || 50;
     const skip = parseInt(req.query.skip) || 0;
 
+    // Verify user is participant of this conversation
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: req.user.id
+    });
+
+    if (!conversation) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const messages = await Message.find({ conversationId })
       .populate('sender', 'username avatar')
       .sort({ createdAt: -1 })
@@ -324,6 +361,7 @@ app.get('/api/messages/:conversationId', authenticateToken, async (req, res) => 
 
     res.json(messages.reverse());
   } catch (error) {
+    console.error('Get messages error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -335,6 +373,16 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
 
     if (!content || !conversationId) {
       return res.status(400).json({ error: 'Content and conversation ID required' });
+    }
+
+    // Verify user is participant
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: req.user.id
+    });
+
+    if (!conversation) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     const message = new Message({
@@ -349,7 +397,6 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
     await message.populate('sender', 'username avatar');
 
     // Update conversation last message
-    const conversation = await Conversation.findById(conversationId);
     conversation.lastMessage = {
       text: content,
       sender: req.user.id,
@@ -367,10 +414,14 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
     await conversation.save();
 
     // Emit to conversation participants
-    io.to(conversationId).emit('newMessage', message);
+    io.to(conversationId).emit('newMessage', {
+      ...message.toObject(),
+      conversationId: conversationId
+    });
 
     res.json(message);
   } catch (error) {
+    console.error('Send message error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -379,6 +430,16 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
 app.patch('/api/messages/read/:conversationId', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
+
+    // Verify user is participant
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: req.user.id
+    });
+
+    if (!conversation) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
     await Message.updateMany(
       {
@@ -390,7 +451,6 @@ app.patch('/api/messages/read/:conversationId', authenticateToken, async (req, r
     );
 
     // Reset unread count
-    const conversation = await Conversation.findById(conversationId);
     conversation.unreadCount.set(req.user.id, 0);
     await conversation.save();
 
@@ -401,7 +461,21 @@ app.patch('/api/messages/read/:conversationId', authenticateToken, async (req, r
 
     res.json({ success: true });
   } catch (error) {
+    console.error('Mark read error:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Upload image endpoint (optional for future use)
+app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    res.json({ fileUrl: `/uploads/${req.file.filename}` });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Upload failed' });
   }
 });
 
@@ -422,57 +496,91 @@ io.use((socket, next) => {
 });
 
 io.on('connection', async (socket) => {
-  console.log(`✅ User connected: ${socket.username}`);
+  console.log(`✅ User connected: ${socket.username} (${socket.userId})`);
 
   userSockets.set(socket.userId, socket.id);
 
-  // Update user status to online
-  await User.findByIdAndUpdate(socket.userId, { status: 'online' });
-
-  // Join user's conversations
-  const conversations = await Conversation.find({
-    participants: socket.userId
-  });
-
-  conversations.forEach(conv => {
-    socket.join(conv._id.toString());
-  });
-
-  // Join user's personal room
-  socket.join(socket.userId);
-
-  // Broadcast online status
-  io.emit('userStatusChange', {
-    userId: socket.userId,
-    status: 'online'
-  });
-
-  // Handle typing
-  socket.on('typing', ({ conversationId, isTyping }) => {
-    socket.to(conversationId).emit('userTyping', {
-      userId: socket.userId,
-      username: socket.username,
-      conversationId,
-      isTyping
-    });
-  });
-
-  // Handle disconnect
-  socket.on('disconnect', async () => {
-    console.log(`❌ User disconnected: ${socket.username}`);
-    userSockets.delete(socket.userId);
-
+  try {
+    // Update user status to online
     await User.findByIdAndUpdate(socket.userId, {
-      status: 'offline',
+      status: 'online',
       lastSeen: new Date()
     });
 
+    // Join user's conversations
+    const conversations = await Conversation.find({
+      participants: socket.userId
+    });
+
+    conversations.forEach(conv => {
+      socket.join(conv._id.toString());
+    });
+
+    // Join user's personal room
+    socket.join(socket.userId);
+
+    // Broadcast online status to all users
     io.emit('userStatusChange', {
       userId: socket.userId,
-      status: 'offline',
+      status: 'online',
       lastSeen: new Date()
     });
-  });
+
+    // Handle typing indicator
+    socket.on('typing', ({ conversationId, isTyping }) => {
+      socket.to(conversationId).emit('userTyping', {
+        userId: socket.userId,
+        username: socket.username,
+        conversationId,
+        isTyping
+      });
+    });
+
+    // Handle disconnect
+    socket.on('disconnect', async () => {
+      console.log(`❌ User disconnected: ${socket.username} (${socket.userId})`);
+      userSockets.delete(socket.userId);
+
+      const lastSeenTime = new Date();
+
+      try {
+        await User.findByIdAndUpdate(socket.userId, {
+          status: 'offline',
+          lastSeen: lastSeenTime
+        });
+
+        // Broadcast offline status to all users
+        io.emit('userStatusChange', {
+          userId: socket.userId,
+          status: 'offline',
+          lastSeen: lastSeenTime
+        });
+      } catch (error) {
+        console.error('Error updating user status on disconnect:', error);
+      }
+    });
+
+    // Handle errors
+    socket.on('error', (error) => {
+      console.error('Socket error:', error);
+    });
+
+  } catch (error) {
+    console.error('Socket connection error:', error);
+  }
+});
+
+// ========== ERROR HANDLING ==========
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Global error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // ========== START SERVER ==========
@@ -480,4 +588,5 @@ io.on('connection', async (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
