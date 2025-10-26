@@ -3,9 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FrankChat - Connect with Classmates</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- Primary Meta Tags -->
+    <title>FrankChat - Connect with Your Classmates</title>
+    <meta name="title" content="FrankChat - Connect with Your Classmates">
+    <meta name="description" content="Real-time messaging platform designed for seamless communication and collaboration. Connect, chat, and collaborate with your classmates instantly.">
+    <meta name="keywords" content="chat, messaging, classmates, real-time chat, communication, collaboration">
+    <meta name="author" content="FrankChat">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://frankchat.com/">
+    <meta property="og:title" content="FrankChat - Connect with Your Classmates">
+    <meta property="og:description" content="Real-time messaging platform designed for seamless communication and collaboration.">
+    <meta property="og:image" content="assets/og-image.png">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://frankchat.com/">
+    <meta property="twitter:title" content="FrankChat - Connect with Your Classmates">
+    <meta property="twitter:description" content="Real-time messaging platform designed for seamless communication and collaboration.">
+    <meta property="twitter:image" content="assets/og-image.png">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="assets/android-chrome-512x512.png">
+    <link rel="manifest" href="assets/site.webmanifest">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#6366f1">
+    <meta name="msapplication-TileColor" content="#6366f1">
+    <meta name="msapplication-config" content="assets/browserconfig.xml">
+    
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    
+    <!-- DNS Prefetch -->
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
 </head>
 <body>
     
@@ -14,8 +59,7 @@
         <nav class="landing-nav">
             <div class="nav-content">
                 <div class="logo">
-                    <i class="fas fa-comments"></i>
-                    <span>FrankChat</span>
+                    <img src="assets/FrankChat_brand_logo.png" alt="FrankChat Logo" class="logo-img">
                 </div>
                 <div class="nav-buttons">
                     <button class="btn-secondary" onclick="showAuthModal('login')">Login</button>
@@ -155,17 +199,51 @@
     <!-- ========== CHAT APPLICATION ========== -->
     <div id="chatApp" class="chat-app" style="display: none;">
         
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="user-profile">
-                    <div class="avatar" id="sidebarAvatar">FC</div>
-                    <div class="user-info">
-                        <h3 id="sidebarUsername">User</h3>
-                        <span class="status-indicator online">Online</span>
-                    </div>
+        <!-- Desktop Navigation Panel -->
+        <aside class="nav-panel desktop-only" id="navPanel">
+            <div class="nav-panel-header">
+                <div class="logo-nav">
+                    <img src="assets/FrankChat_logo_icon.png" alt="FrankChat Logo" class="logo-img">
                 </div>
-                <button class="icon-btn" onclick="toggleSettingsModal()">
+            </div>
+            <nav class="nav-items">
+                <button class="nav-item active" data-view="chats" onclick="switchView('chats')" title="All Chats">
+                    <i class="fas fa-comments"></i>
+                    <span class="nav-label">Chats</span>
+                </button>
+                <button class="nav-item" data-view="groups" onclick="switchView('groups')" title="Groups">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-label">Groups</span>
+                </button>
+                <button class="nav-item" data-view="unread" onclick="switchView('unread')" title="Unread">
+                    <i class="fas fa-bell"></i>
+                    <span class="nav-label">Unread</span>
+                    <span class="nav-badge" id="totalUnreadBadge" style="display: none;">0</span>
+                </button>
+                <button class="nav-item" onclick="showNewChatModal()" title="New Chat">
+                    <i class="fas fa-plus-circle"></i>
+                    <span class="nav-label">New</span>
+                </button>
+            </nav>
+            <div class="nav-footer">
+                <button class="nav-item" onclick="showProfileModal()" title="Profile">
+                    <div class="avatar-small" id="navAvatar">FC</div>
+                    <span class="nav-label">Profile</span>
+                </button>
+                <button class="nav-item" onclick="toggleSettingsModal()" title="Settings">
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-label">Settings</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <span>FrankChat</span>
+                </div>
+                <button class="icon-btn mobile-only" onclick="toggleSettingsModal()">
                     <i class="fas fa-cog"></i>
                 </button>
             </div>
@@ -175,25 +253,119 @@
                 <input type="text" id="searchConversations" placeholder="Search conversations...">
             </div>
 
-            <button class="new-chat-btn" onclick="showNewChatModal()">
+            <button class="new-chat-btn desktop-only" onclick="showNewChatModal()">
                 <i class="fas fa-plus"></i> New Chat
             </button>
 
             <div class="conversations-list" id="conversationsList">
-                <!-- Conversations will be loaded here -->
+                <div class="loading-conversations">
+                    <div class="spinner"></div>
+                    <p>Loading conversations...</p>
+                </div>
             </div>
         </aside>
+
+        <!-- Mobile Bottom Navigation -->
+        <nav class="mobile-nav">
+            <button class="mobile-nav-item active" data-view="chats" onclick="switchMobileView('chats')">
+                <i class="fas fa-comments"></i>
+                <span>Chats</span>
+            </button>
+            <button class="mobile-nav-item" data-view="groups" onclick="switchMobileView('groups')">
+                <i class="fas fa-users"></i>
+                <span>Groups</span>
+            </button>
+            <button class="mobile-nav-item" data-view="unread" onclick="switchMobileView('unread')">
+                <i class="fas fa-bell"></i>
+                <span>Unread</span>
+                <span class="mobile-badge" id="mobileUnreadBadge" style="display: none;">0</span>
+            </button>
+            <button class="mobile-nav-item" onclick="showProfileModal()">
+                <i class="fas fa-user"></i>
+                <span>Account</span>
+            </button>
+        </nav>
 
         <!-- Chat Area -->
         <main class="chat-main">
             <div class="chat-placeholder">
-                <i class="fas fa-comments"></i>
-                <h2>Welcome to FrankChat</h2>
-                <p>Select a conversation or start a new chat to begin messaging</p>
+            <div class="placeholder-background">
+                <div class="floating-shape shape-1"></div>
+                <div class="floating-shape shape-2"></div>
+                <div class="floating-shape shape-3"></div>
+                <div class="gradient-orb orb-1"></div>
+                <div class="gradient-orb orb-2"></div>
+            </div>
+            
+            <div class="placeholder-inner">
+                <div class="placeholder-logo-wrapper">
+                <div class="logo-glow"></div>
+                <div class="placeholder-logo">
+                    <img src="assets/FrankChat_brand_logo.png" alt="FrankChat Logo" class="logo-img">
+                </div>
+                <div class="logo-ring"></div>
+                </div>
+                
+                <div class="welcome-content">
+                <h2 class="welcome-title">
+                    <span class="title-gradient">Welcome to FrankChat</span>
+                </h2>
+                <p class="placeholder-text">
+                    Connect, communicate, and collaborate with your team in real-time.
+                    <br/>Start a conversation to experience seamless messaging.
+                </p>
+                
+                <div class="action-buttons">
+                    <button class="start-chat-btn primary-btn" onclick="openNewChatPrivate()">
+                    <span class="btn-icon">
+                        <i class="fas fa-comment-dots"></i>
+                    </span>
+                    <span class="btn-text">Start New Chat</span>
+                    <span class="btn-shine"></span>
+                    </button>
+                    
+                    <button class="secondary-action-btn" onclick="openNewChatGroup()">
+                    <i class="fas fa-users"></i>
+                    <span>Create Group</span>
+                    </button>
+                </div>
+                
+                <div class="feature-highlights">
+                    <div class="feature-item-home">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <span>Real-time messaging</span>
+                    </div>
+                    <div class="feature-item-home">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <span>Secure & private</span>
+                    </div>
+                    <div class="feature-item-home">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <span>Cross-platform</span>
+                    </div>
+                </div>
+                </div>
+                
+                <div class="quick-tips">
+                <div class="tip-item">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Press <kbd>Alt</kbd> + <kbd>?</kbd> to open kbd shortcut help</span>
+                </div>
+                </div>
+            </div>
             </div>
 
             <div class="chat-container" id="chatContainer" style="display: none;">
                 <div class="chat-header">
+                    <button class="back-btn mobile-only" onclick="closeChatMobile()">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
                     <div class="chat-header-info">
                         <div class="avatar" id="chatAvatar">U</div>
                         <div>
@@ -209,7 +381,10 @@
                 </div>
 
                 <div class="messages-container" id="messagesContainer">
-                    <!-- Messages will appear here -->
+                    <div class="loading-messages">
+                        <div class="spinner"></div>
+                        <p>Loading messages...</p>
+                    </div>
                 </div>
 
                 <div class="typing-indicator" id="typingIndicator" style="display: none;">
@@ -224,15 +399,16 @@
                         <i class="fas fa-paperclip"></i>
                     </button>
                     <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
-                    <button type="submit" class="btn-primary">
+                    <button type="submit" class="btn-send" id="sendBtn">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </form>
             </div>
-        </main>
 
-        <!-- Chat Info Panel -->
-        <aside class="chat-info" id="chatInfo" style="display: none;">
+
+
+             <!-- Chat Info Panel -->
+        <aside class="chat-info" id="chatInfo">
             <div class="chat-info-header">
                 <h3>Chat Details</h3>
                 <button class="icon-btn" onclick="toggleChatInfo()">
@@ -253,6 +429,7 @@
                 </div>
             </div>
         </aside>
+        </main>
     </div>
 
     <!-- ========== NEW CHAT MODAL ========== -->
@@ -315,13 +492,13 @@
                 </button>
             </div>
             <div class="modal-body">
-                <div class="settings-section">
+                <!-- <div class="settings-section">
                     <h3><i class="fas fa-user"></i> Profile</h3>
                     <div class="profile-info">
                         <div class="avatar-large" id="settingsAvatar">FC</div>
                         <h3 id="settingsUsername">Username</h3>
                     </div>
-                </div>
+                </div> -->
 
                 <div class="settings-section">
                     <h3><i class="fas fa-palette"></i> Appearance</h3>
@@ -353,6 +530,107 @@
             </div>
         </div>
     </div>
+
+    <!-- ========== PROFILE MODAL ========== -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Profile</h2>
+                <button class="modal-close" onclick="closeProfileModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-section">
+                    <div class="avatar-large" id="profileAvatar">FC</div>
+                    <h3 id="profileUsername">Username</h3>
+                    <p class="profile-status">
+                        <i class="fas fa-circle"></i> Online
+                    </p>
+                </div>
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-comments"></i>
+                        <div>
+                            <span class="stat-value" id="totalChats">0</span>
+                            <span class="stat-label">Chats</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-users"></i>
+                        <div>
+                            <span class="stat-value" id="totalGroups">0</span>
+                            <span class="stat-label">Groups</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== LOADING OVERLAY ========== -->
+    <!-- <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner-large"></div>
+            <p id="loadingText">Loading...</p>
+        </div>
+    </div> -->
+    
+
+    <!-- Lottie Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+
+<script>
+// Only initialize if landing page exists and is visible
+if (document.getElementById('landingPage')) {
+  const landingPage = document.getElementById('landingPage');
+  
+  // ========== MAIN CENTER LOTTIE ANIMATION ==========
+  const lottieContainer = document.createElement('div');
+  lottieContainer.id = 'lottie-background';
+  
+  const lottieDiv = document.createElement('div');
+  lottieDiv.id = 'lottie-chat-animation';
+  lottieContainer.appendChild(lottieDiv);
+  
+  landingPage.insertBefore(lottieContainer, landingPage.firstChild);
+  
+  // Main chatting animation (center) - Two people chatting with clear message bubbles
+  lottie.loadAnimation({
+    container: lottieDiv,
+    renderer: 'svg',
+    loop: true,
+    autoplay: true,
+    path: 'https://assets10.lottiefiles.com/packages/lf20_5tl1xxnz.json'
+  });
+  
+  // ========== TOP RIGHT CORNER ANIMATION ==========
+  const topRightDiv = document.createElement('div');
+  topRightDiv.className = 'lottie-corner lottie-top-right';
+  landingPage.insertBefore(topRightDiv, landingPage.firstChild);
+  
+  lottie.loadAnimation({
+    container: topRightDiv,
+    renderer: 'svg',
+    loop: true,
+    autoplay: true,
+    path: 'https://assets9.lottiefiles.com/packages/lf20_u25cckyh.json'
+  });
+  
+  // ========== BOTTOM LEFT CORNER ANIMATION ==========
+  const bottomLeftDiv = document.createElement('div');
+  bottomLeftDiv.className = 'lottie-corner lottie-bottom-left';
+  landingPage.insertBefore(bottomLeftDiv, landingPage.firstChild);
+  
+  lottie.loadAnimation({
+    container: bottomLeftDiv,
+    renderer: 'svg',
+    loop: true,
+    autoplay: true,
+    path: 'https://assets2.lottiefiles.com/packages/lf20_0s6tfbuc.json'
+  });
+}
+</script>
 
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script src="app.js"></script>
