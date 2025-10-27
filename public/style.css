@@ -458,10 +458,10 @@ a {
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  animation: slideUp 0.3s ease;
+  animation: modalSlideUp 0.3s ease;
 }
 
-@keyframes slideUp {
+@keyframes modalSlideUp {
   from {
     opacity: 0;
     transform: translateY(20px);
@@ -1671,7 +1671,7 @@ a {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  background: #103a248f;
   color: white;
   display: flex;
   align-items: center;
@@ -1705,7 +1705,7 @@ a {
 }
 
 .message.own .message-bubble {
-  background: var(--primary);
+  background: var(--primary-dark);
   color: white;
 }
 
@@ -2261,4 +2261,110 @@ a {
     height: 100%;
     z-index: 101;
   }
+}
+
+
+/* ========== PASSWORD INPUT WITH MONKEY ANIMATION ========== */
+.password {
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  padding-right: 50px; /* Reduced padding for smaller monkey */
+  overflow: visible;
+  border: 2px solid var(--border);
+}
+.password:focus-within {
+  border-color: var(--primary);
+}
+
+/* ---------- MONKEY + HANDS BASE ---------- */
+.password .monkey,
+.password .monkey-hands {
+  position: absolute;
+  right: 8px; /* Adjusted for smaller size */
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.password .monkey {
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 1;
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.password .monkey-hands {
+  z-index: 2;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.password .monkey svg,
+.password .monkey-hands svg {
+  width: 28px; /* Reduced from 40px */
+  height: 28px; /* Reduced from 40px */
+  display: block;
+}
+
+/* ---------- INPUT STYLING ---------- */
+.password .password-wrapper {
+  flex: 1;
+}
+
+.password .password-input {
+  width: 100%;
+  height: 45px;
+  border: none;
+  outline: none;
+  padding: 0 10px;
+  font-size: 15px;
+  background: transparent;
+}
+
+/* ---------- MONKEY FACE ANIMATION ---------- */
+.password.show .monkey {
+  transform: translateY(-50%) scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* ---------- HAND MOTION / EYE COVER ---------- */
+.password:not(.show) .monkey-hands {
+  transform: translateY(-50%);
+  opacity: 1;
+}
+
+.password.show .monkey-hands {
+  transform: translateY(-50%) translateY(15px) rotateX(-25deg); /* Adjusted for smaller size */
+  opacity: 0;
+}
+
+/* ---------- MONKEY SMILE (POSITIONED AT NOSE/MOUTH AREA) ---------- */
+.password .monkey::before {
+  content: "";
+  position: absolute;
+  transition: all 0.3s ease;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  top: 62.5%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-bottom: 0;
+  opacity: 0;
+}
+
+/* When showing password → monkey smiles at correct position */
+.password.show .monkey::before {
+  border-radius: 0 0 50% 50%;
+  width: 6px; /* Reduced for smaller monkey */
+  height: 3px; /* Reduced for smaller monkey */
+  border: 0;
+  border-bottom: 1.5px solid #3C302A; /* Thinner for smaller size */
+  opacity: 1;
+  top: 67%;
 }
