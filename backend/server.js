@@ -21,7 +21,7 @@ const io = new Server(server, {
       'http://127.0.0.1:5501',
       'https://vibeclass.vercel.app'
     ],
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'], // Added PATCH and DELETE
     credentials: true
   }
 });
@@ -76,6 +76,7 @@ const conversationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// ========== UPDATED MESSAGE SCHEMA WITH NEW FIELDS ==========
 const messageSchema = new mongoose.Schema({
   conversationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation', required: true },
   sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -83,7 +84,12 @@ const messageSchema = new mongoose.Schema({
   type: { type: String, enum: ['text', 'image'], default: 'text' },
   fileUrl: { type: String, default: '' },
   readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  createdAt: { type: Date, default: Date.now }
+  replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Message', default: null }, // NEW
+  reactions: { type: Map, of: String, default: {} }, // NEW - userId -> emoji
+  edited: { type: Boolean, default: false }, // NEW
+  forwarded: { type: Boolean, default: false }, // NEW
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now } // NEW
 });
 
 const User = mongoose.model('User', userSchema);
@@ -336,7 +342,7 @@ app.post('/api/conversations', authenticateToken, async (req, res) => {
 
 // ========== MESSAGE ROUTES ==========
 
-// Get messages for a conversation
+// ========== UPDATED: Get messages with reply population ==========
 app.get('/api/messages/:conversationId', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -355,6 +361,10 @@ app.get('/api/messages/:conversationId', authenticateToken, async (req, res) => 
 
     const messages = await Message.find({ conversationId })
       .populate('sender', 'username avatar')
+      .populate({
+        path: 'replyTo',
+        populate: { path: 'sender', select: 'username avatar' }
+      })
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip);
@@ -366,10 +376,10 @@ app.get('/api/messages/:conversationId', authenticateToken, async (req, res) => 
   }
 });
 
-// Send message
+// ========== UPDATED: Send message with reply support ==========
 app.post('/api/messages', authenticateToken, async (req, res) => {
   try {
-    const { conversationId, content, type } = req.body;
+    const { conversationId, content, type, replyTo, forwarded } = req.body;
 
     if (!content || !conversationId) {
       return res.status(400).json({ error: 'Content and conversation ID required' });
@@ -385,16 +395,39 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    // If replying, verify the replied message exists in this conversation
+    if (replyTo) {
+      const repliedMessage = await Message.findOne({
+        _id: replyTo,
+        conversationId: conversationId
+      });
+
+      if (!repliedMessage) {
+        return res.status(400).json({ error: 'Replied message not found' });
+      }
+    }
+
     const message = new Message({
       conversationId,
       sender: req.user.id,
       content,
       type: type || 'text',
-      readBy: [req.user.id]
+      readBy: [req.user.id],
+      replyTo: replyTo || null,
+      forwarded: forwarded || false,
+      reactions: new Map()
     });
 
     await message.save();
     await message.populate('sender', 'username avatar');
+    
+    // If this is a reply, populate the replied message too
+    if (message.replyTo) {
+      await message.populate({
+        path: 'replyTo',
+        populate: { path: 'sender', select: 'username avatar' }
+      });
+    }
 
     // Update conversation last message
     conversation.lastMessage = {
@@ -422,6 +455,185 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
     res.json(message);
   } catch (error) {
     console.error('Send message error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ========== NEW: Edit Message ==========
+app.patch('/api/messages/:messageId', authenticateToken, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    // Find message
+    const message = await Message.findById(messageId).populate('sender', 'username avatar');
+
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Verify user is the sender
+    if (message.sender._id.toString() !== req.user.id) {
+      return res.status(403).json({ error: 'You can only edit your own messages' });
+    }
+
+    // Update message
+    message.content = content.trim();
+    message.edited = true;
+    message.updatedAt = new Date();
+    await message.save();
+
+    // Populate sender again after save
+    await message.populate('sender', 'username avatar');
+    
+    // Populate reply if exists
+    if (message.replyTo) {
+      await message.populate({
+        path: 'replyTo',
+        populate: { path: 'sender', select: 'username avatar' }
+      });
+    }
+
+    // Emit update to conversation participants
+    io.to(message.conversationId.toString()).emit('messageUpdated', message);
+
+    res.json(message);
+  } catch (error) {
+    console.error('Edit message error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ========== NEW: Delete Message ==========
+app.delete('/api/messages/:messageId', authenticateToken, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+
+    // Find message
+    const message = await Message.findById(messageId);
+
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Verify user is the sender
+    if (message.sender.toString() !== req.user.id) {
+      return res.status(403).json({ error: 'You can only delete your own messages' });
+    }
+
+    const conversationId = message.conversationId;
+
+    // Delete message
+    await Message.findByIdAndDelete(messageId);
+
+    // Update conversation's last message if this was the last message
+    const conversation = await Conversation.findById(conversationId);
+    if (conversation && conversation.lastMessage) {
+      // Check if deleted message was the last message
+      if (conversation.lastMessage.text === message.content) {
+        // Find new last message
+        const lastMessage = await Message.findOne({ conversationId })
+          .sort({ createdAt: -1 })
+          .limit(1);
+
+        if (lastMessage) {
+          conversation.lastMessage = {
+            text: lastMessage.content,
+            sender: lastMessage.sender,
+            time: lastMessage.createdAt
+          };
+        } else {
+          conversation.lastMessage = null;
+        }
+        await conversation.save();
+      }
+    }
+
+    // Emit delete to conversation participants
+    io.to(conversationId.toString()).emit('messageDeleted', {
+      messageId,
+      conversationId
+    });
+
+    res.json({ success: true, messageId });
+  } catch (error) {
+    console.error('Delete message error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ========== NEW: Add/Remove Reaction ==========
+app.patch('/api/messages/:messageId/react', authenticateToken, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+
+    if (!emoji) {
+      return res.status(400).json({ error: 'Emoji is required' });
+    }
+
+    // Find message
+    const message = await Message.findById(messageId).populate('sender', 'username avatar');
+
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Verify user is participant of the conversation
+    const conversation = await Conversation.findOne({
+      _id: message.conversationId,
+      participants: req.user.id
+    });
+
+    if (!conversation) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Initialize reactions map if it doesn't exist
+    if (!message.reactions) {
+      message.reactions = new Map();
+    }
+
+    // Toggle reaction - if same emoji exists, remove it; otherwise add/update
+    const currentReaction = message.reactions.get(req.user.id);
+    
+    if (currentReaction === emoji) {
+      // Remove reaction
+      message.reactions.delete(req.user.id);
+    } else {
+      // Add or update reaction
+      message.reactions.set(req.user.id, emoji);
+    }
+
+    message.markModified('reactions');
+    await message.save();
+
+    // Populate sender again
+    await message.populate('sender', 'username avatar');
+    
+    // Populate reply if exists
+    if (message.replyTo) {
+      await message.populate({
+        path: 'replyTo',
+        populate: { path: 'sender', select: 'username avatar' }
+      });
+    }
+
+    // Emit reaction update to conversation participants
+    io.to(message.conversationId.toString()).emit('messageReactionUpdated', {
+      messageId: message._id,
+      reactions: Object.fromEntries(message.reactions),
+      userId: req.user.id,
+      emoji: currentReaction === emoji ? null : emoji
+    });
+
+    res.json(message);
+  } catch (error) {
+    console.error('React to message error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
