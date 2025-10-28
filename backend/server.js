@@ -26,19 +26,34 @@ const io = new Server(server, {
   }
 });
 
-// Middleware
+
+// ===================== CORS MIDDLEWARE =====================
+const allowedOrigins = [
+  'http://localhost:5500',
+  'http://localhost:5501',
+  'http://localhost:3000',
+  'http://127.0.0.1:5500',
+  'http://127.0.0.1:5501',
+  'https://vibeclass.vercel.app'
+];
+
 app.use(cors({
-  origin: [
-    'http://localhost:5500',
-    'http://localhost:5501',
-    'http://localhost:3000',
-    'http://127.0.0.1:5500',
-    'http://127.0.0.1:5501',
-    'https://vibeclass.vercel.app'
-  ],
-  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'], // ✅ Include OPTIONS
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
+// ✅ Add this right below the cors() middleware:
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(204);
+});
+// ============================================================
+
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
